@@ -2,6 +2,8 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "google-auth-library";
 
+import { CustomAPIError, BadRequestError, NotFoundError, UnauthenticatedError  } from "../errors/index.js";
+
 const userSchema = new mongoose.Schema({
     email:{
         type:String,
@@ -57,3 +59,39 @@ const userSchema = new mongoose.Schema({
 },
 {timestamps:true}
 );
+
+
+userSchema.pre("save", async function(){
+    if(!this.isModified("password")){
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password,salt);
+    }
+})
+
+
+userSchema.pre("save", async function(){
+    if(!this.isModified("login_pin")){
+        const salt = await bcrypt.genSalt(10);
+        this.login_pin = await bcrypt.hash(this.login_pin,salt);
+
+    }
+})
+
+userSchema.static.updatePin = async function(email,newPin){
+    try{
+
+        const user = await this.findOne({email});
+
+        if(!user){
+            throw new NotFoundError("User not found");
+        }
+
+    }
+    catch(err){
+        throw err;
+    }
+}
+
+
+const User = mongoose.model("User",userSchema);
+export default User;
