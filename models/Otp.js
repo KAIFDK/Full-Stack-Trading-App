@@ -24,7 +24,7 @@ const otpSchema = new mongoose.Schema({
 });
 
 
-otpSchema.pre("save", async function(next){
+otpSchema.pre("save", async function(next){  // hash otp before saving to db
     if(this.isNew){
         const salt = await bcrypt.genSalt(10);
         await sendVeri(this.email,this.otp);
@@ -32,6 +32,10 @@ otpSchema.pre("save", async function(next){
     }
     next();
 });
+
+otpSchema.methods.compareOtp = async function(enteredOtp){  // compare entered otp with hashed otp in db
+    return await bcrypt.compare(enteredOtp,this.otp);
+};
 
 async function sendVeri(email,otp,otp_type){
     try{
