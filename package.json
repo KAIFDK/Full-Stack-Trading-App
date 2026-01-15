@@ -1,0 +1,38 @@
+{
+  "name": "tradingapp_server",
+  "version": "1.0.0",
+  "description": "TradingAPP - A modern trading application ",
+  "main": "index.js",
+  "type" : "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "seed": "node scripts/seedStocks.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "buffer-from": "^1.1.2",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "google-auth-library": "^10.5.0",
+    "http-status-codes": "^2.3.0",
+    "inline-css": "^4.0.3",
+    "jsonwebtoken": "^9.0.3",
+    "jwks-rsa": "^3.2.0",
+    "mongoose": "^9.1.2",
+    "node-cron": "^4.2.1",
+    "node-rsa": "^1.1.1",
+    "nodemailer": "^7.0.12",
+    "otp-generator": "^4.0.1",
+    "socket-io": "^1.0.0",
+    "swagger-ui-express": "^5.0.1",
+    "yamljs": "^0.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}
