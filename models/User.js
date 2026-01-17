@@ -86,10 +86,89 @@ userSchema.static.updatePin = async function(email,newPin){
             throw new NotFoundError("User not found");
         }
 
+        const isSamePin = await bcrypt.compare(newPin,user.login_pin);
+        if(isSamePin){
+            throw new BadRequestError("New PIN cannot be same as old PIN");
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPin = await bcrypt.hash(newPin,salt);
+
+        await this.findOneAndUpdate({email},{login_pin : hashedPin, wrongpin:0, blocked_until_pin:null});
+
+        return {success:true,message:"PIN updated successfully"};
     }
     catch(err){
         throw err;
     }
+}
+
+userSchema.static.updatePassword = async function(email,newPassword){
+    try{
+        const user = await this.findOne({email});
+
+        if(!user){
+            throw new NotFoundError("User not found");
+        }
+
+        const isSamePassword = await bcrypt.compare(newPassword,user.password);
+        if(isSamePassword){
+            throw new BadRequestError("New password cannot be same as old password");
+        }
+
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword,salt);
+
+        await this.findOneAndUpdate({email},{password : hashedPassword, wrongpin:0, blocked_until_password:null});
+    }
+    catch(err){
+        throw err;
+    }
+};
+
+userSchema.methods.comparePassword = async function(candidatePassword){
+    if(this.blocked_until_password  && this.blocked_until_password > Date.now()){
+        throw new UnauthenticatedError(`Invalid Login Attempts. Try again after 30minutes`);
+    }
+    const isMatch = await bcrypt.compare(candidatePassword,this.password);
+    if(!isMatch){
+        this.wrong_password_attempt +=1;
+        if(this.wrong_password_attempt >=3){
+            this.blocked_until_password = new Date(Date.now() + 30*60*1000); //block for 30 minutes
+            this.wrong_password_attempt =0;
+    }
+    await this.save();
+}
+else{
+    this.wrong_password_attempt =0;
+    this.blocked_until_password = null;
+    await this.save();
+}
+return isMatch;
+}
+
+userSchema.methods.comparePin = async function comparePin(candidatePin){
+    if(this.blocked_until_pin  && this.blocked_until_pin > Date.now()){
+        throw new UnauthenticatedError(`Invalid PIN Attempts. Try again after 30 minutes`);
+    }
+
+    const hashedPin = this.login_pin;
+    const isMatch = await bcrypt.compare(candidatePin,hashedPin);
+    if(!isMatch){
+        this.wrong_pin_attempt +=1;
+        if(this.wrong_pin_attempt >=3){
+            this.blocked_until_pin = new Date(Date.now() + 30*60*1000); //block for 30 minutes
+            this.wrong_pin_attempt =0;
+        }
+        await this.save();
+    }
+    else{
+        this.wrong_pin_attempt =0;
+        this.blocked_until_pin = null;
+        await this.save();
+    }
+    return isMatch;
 }
 
 
