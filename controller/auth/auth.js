@@ -1,6 +1,6 @@
 import user from  '../../models/user.js';
 import { StatusCodes } from 'http-status-codes';
-import { BadRequestError, UnauthenticatedError  }  from '../../errors/index.js';
+import { BadRequestError, NotFoundError, UnauthenticatedError  }  from '../../errors/index.js';
 import jwt from 'jsonwebtoken';
 
 const register = async (req,res) => {
@@ -83,8 +83,34 @@ const refresh_token = async (req,res) => {
 
 }
 
-async function generateRefreshToken(userId){
-    
+async function generateRefreshToken(
+    token,
+    refresh_secret,
+    refresh_expiry,
+    access_secret,
+    access_expiry
+){ try{
+    const payLoad = jwt.verify(token, refresh_secret);
+    const user = await User.findById(payLoad.userId);
+    if(!user){
+        throw new NotFoundError('User not found');
+    }
+    const access_token = jwt.sign(
+        {userId:user.payLoad.userId},
+        access_secret,
+        {expiresIn:access_expiry}
+    );
+    const newRefresh_token = jwt.sign(
+        {userId:user.payLoad.userId},
+        refresh_secret,
+        {expiresIn:refresh_expiry}
+    );
+    return {access_token, newRefresh_token};
+}
+catch(error){
+    console.error(error);
+    throw new UnauthenticatedError('Invalid refresh token');    
 }
 
+}
 export {register, login};
