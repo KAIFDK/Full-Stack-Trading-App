@@ -2,6 +2,7 @@ import user from  '../../models/user.js';
 import { StatusCodes } from 'http-status-codes';
 import { BadRequestError, NotFoundError, UnauthenticatedError  }  from '../../errors/index.js';
 import jwt from 'jsonwebtoken';
+import User from '../../models/user.js';
 
 const register = async (req,res) => {
     const {email, password, register_token} = req.body;
@@ -79,8 +80,38 @@ if(user.login_pin){
 res.status(StatusCodes.OK).json({user: {name : user.name ,email: user.email , userId: user.id, phone_exsit, login_pin_exsit},tokens : {access_token, refresh_token}});
 }
 
-const refresh_token = async (req,res) => {
+const refreshToken = async (req,res) => {
+    const {type , refresh_Token } = req.body;
+    if(!type || !["socket" , "app"].includes(type) || !refresh_Token){
+        throw new BadRequestError('Please provide all values');
+    }
+    try{
+        let access_token, new_refresh_token;
+        if(type === "socket"){
+            ({access_token, new_refresh_token} = await generateRefreshToken(
+                refresh_Token,
+                process.env.SOCKET_REFRESH_TOKEN_SECRET,
+                process.env.SOCKET_REFRESH_TOKEN_EXPIRY,
+                process.env.SOCKET_ACCESS_TOKEN_SECRET,
+                process.env.SOCKET_ACCESS_TOKEN_EXPIRY
+            ));
+        }
+        else if(type === "app"){
+            ({access_token, new_refresh_token} = await generateRefreshToken(
+                refresh_Token,
+                process.env.REFRESH_TOKEN_SECRET,
+                process.env.REFRESH_TOKEN_EXPIRY,
+                process.env.JWT_SECRET,
+                process.env.ACCESS_TOKEN_EXPIRY
+            ));
+        } 
+        res.status(StatusCodes.OK).json({access_token, refresh_token: new_refresh_token});
 
+    }
+    catch{
+        console.error(error);
+        throw new UnauthenticatedError('Invalid refresh token');
+    }
 }
 
 async function generateRefreshToken(
@@ -113,4 +144,14 @@ catch(error){
 }
 
 }
-export {register, login};
+
+async function logout(req,res){
+    const accessToken = req.headers.authorization.split(' ')[1];
+    const decodedToken = jwt.decode(accessToken);
+    const userId = decodedToken.userId;
+    await User.updateOne({id : userId}, { $unset: { biometricLogout : true}});
+    res.status(StatusCodes.OK).json({msg: 'Logged out successfully'});
+}
+
+
+export {register, login , refreshToken, logout};
