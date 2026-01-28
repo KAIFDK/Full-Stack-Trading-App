@@ -33,7 +33,7 @@ otpSchema.pre("save", async function(next){  // hash otp before saving to db
     next();
 });
 
-otpSchema.methods.compareOtp = async function(enteredOtp){  // compare entered otp with hashed otp in db
+otpSchema.methods.compareOTP = async function(enteredOtp){  // compare entered otp with hashed otp in db
     return await bcrypt.compare(enteredOtp,this.otp);
 };
 
